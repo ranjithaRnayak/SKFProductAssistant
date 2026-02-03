@@ -1,0 +1,80 @@
+{
+  "products": [
+    {
+      "designation": "6205-2RS",
+      "name": "Deep Groove Ball Bearing 6205-2RS",
+      "category": "deep_groove_ball_bearings",
+      "attributes": {
+        "bore_diameter": { "value": "25", "unit": "mm" },
+        "outer_diameter": { "value": "52", "unit": "mm" },
+        "width": { "value": "15", "unit": "mm" },
+        "dynamic_load_rating": { "value": "14000", "unit": "N" },
+        "static_load_rating": { "value": "7800", "unit": "N" },
+        "limiting_speed_grease": { "value": "11000", "unit": "rpm" },
+        "limiting_speed_oil": { "value": "14000", "unit": "rpm" },
+        "weight": { "value": "0.12", "unit": "kg" },
+        "seal_type": { "value": "2RS", "unit": null },
+        "cage_material": { "value": "Steel", "unit": null },
+        "operating_temperature_min": { "value": "-30", "unit": "°C" },
+        "operating_temperature_max": { "value": "110", "unit": "°C" }
+      }
+    },
+    {
+      "designation": "6205-2Z",
+      "name": "Deep Groove Ball Bearing 6205-2Z",
+      "category": "deep_groove_ball_bearings",
+      "attributes": {
+        "bore_diameter": { "value": "25", "unit": "mm" },
+        "outer_diameter": { "value": "52", "unit": "mm" },
+        "width": { "value": "15", "unit": "mm" },
+        "dynamic_load_rating": { "value": "14000", "unit": "N" },
+        "static_load_rating": { "value": "7800", "unit": "N" },
+        "limiting_speed_grease": { "value": "13000", "unit": "rpm" },
+        "limiting_speed_oil": { "value": "16000", "unit": "rpm" },
+        "weight": { "value": "0.11", "unit": "kg" },
+        "seal_type": { "value": "2Z", "unit": null },
+        "cage_material": { "value": "Steel", "unit": null },
+        "operating_temperature_min": { "value": "-30", "unit": "°C" },
+        "operating_temperature_max": { "value": "120", "unit": "°C" }
+      }
+    },
+    {
+      "designation": "6206-2RS",
+      "name": "Deep Groove Ball Bearing 6206-2RS",
+      "category": "deep_groove_ball_bearings",
+      "attributes": {
+        "bore_diameter": { "value": "30", "unit": "mm" },
+        "outer_diameter": { "value": "62", "unit": "mm" },
+        "width": { "value": "16", "unit": "mm" },
+        "dynamic_load_rating": { "value": "19500", "unit": "N" },
+        "static_load_rating": { "value": "11200", "unit": "N" },
+        "limiting_speed_grease": { "value": "9000", "unit": "rpm" },
+        "limiting_speed_oil": { "value": "11000", "unit": "rpm" },
+        "weight": { "value": "0.19", "unit": "kg" },
+        "seal_type": { "value": "2RS", "unit": null },
+        "cage_material": { "value": "Steel", "unit": null },
+        "operating_temperature_min": { "value": "-30", "unit": "°C" },
+        "operating_temperature_max": { "value": "110", "unit": "°C" }
+      }
+    },
+    {
+      "designation": "6206-2Z",
+      "name": "Deep Groove Ball Bearing 6206-2Z",
+      "category": "deep_groove_ball_bearings",
+      "attributes": {
+        "bore_diameter": { "value": "30", "unit": "mm" },
+        "outer_diameter": { "value": "62", "unit": "mm" },
+        "width": { "value": "16", "unit": "mm" },
+        "dynamic_load_rating": { "value": "19500", "unit": "N" },
+        "static_load_rating": { "value": "11200", "unit": "N" },
+        "limiting_speed_grease": { "value": "11000", "unit": "rpm" },
+        "limiting_speed_oil": { "value": "13000", "unit": "rpm" },
+        "weight": { "value": "0.18", "unit": "kg" },
+        "seal_type": { "value": "2Z", "unit": null },
+        "cage_material": { "value": "Steel", "unit": null },
+        "operating_temperature_min": { "value": "-30", "unit": "°C" },
+        "operating_temperature_max": { "value": "120", "unit": "°C" }
+      }
+    }
+  ]
+}

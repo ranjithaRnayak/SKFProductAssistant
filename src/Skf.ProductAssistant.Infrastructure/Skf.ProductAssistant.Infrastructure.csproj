@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <RootNamespace>Skf.ProductAssistant.Infrastructure</RootNamespace>
+    <AssemblyName>Skf.ProductAssistant.Infrastructure</AssemblyName>
+  </PropertyGroup>
+
+  <!--
+    Infrastructure layer contains all external dependencies and implementations.
+    This is the only layer that references third-party packages for:
+    - Redis (StackExchange.Redis)
+    - Semantic Kernel (Microsoft.SemanticKernel)
+    - Azure OpenAI connectivity
+  -->
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Options" Version="8.0.2" />
+    <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations" Version="8.0.0" />
+    <PackageReference Include="Microsoft.SemanticKernel" Version="1.25.0" />
+    <PackageReference Include="StackExchange.Redis" Version="2.7.33" />
+    <PackageReference Include="System.Text.Json" Version="8.0.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Skf.ProductAssistant.Domain\Skf.ProductAssistant.Domain.csproj" />
+  </ItemGroup>
+
+</Project>

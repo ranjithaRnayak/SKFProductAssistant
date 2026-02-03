@@ -1,0 +1,57 @@
+{
+  "description": "Attribute name normalization lexicon for SKF Product Assistant. Maps user-friendly terms to canonical attribute names used in datasheets.",
+  "mappings": [
+    {
+      "canonicalName": "bore_diameter",
+      "aliases": ["bore", "inner diameter", "id", "bore size", "hole diameter", "shaft diameter", "d"]
+    },
+    {
+      "canonicalName": "outer_diameter",
+      "aliases": ["outer", "od", "outside diameter", "external diameter", "D"]
+    },
+    {
+      "canonicalName": "width",
+      "aliases": ["w", "thickness", "b", "bearing width", "ring width"]
+    },
+    {
+      "canonicalName": "weight",
+      "aliases": ["mass", "m", "bearing weight"]
+    },
+    {
+      "canonicalName": "dynamic_load_rating",
+      "aliases": ["dynamic load", "c", "dynamic capacity", "basic dynamic load", "load rating"]
+    },
+    {
+      "canonicalName": "static_load_rating",
+      "aliases": ["static load", "c0", "static capacity", "basic static load"]
+    },
+    {
+      "canonicalName": "limiting_speed_grease",
+      "aliases": ["grease speed", "speed grease", "max speed grease", "limiting speed with grease"]
+    },
+    {
+      "canonicalName": "limiting_speed_oil",
+      "aliases": ["oil speed", "speed oil", "max speed oil", "limiting speed with oil", "maximum speed"]
+    },
+    {
+      "canonicalName": "seal_type",
+      "aliases": ["seal", "sealing", "shield", "cover"]
+    },
+    {
+      "canonicalName": "cage_material",
+      "aliases": ["cage", "retainer", "separator"]
+    },
+    {
+      "canonicalName": "contact_angle",
+      "aliases": ["angle", "contact"]
+    },
+    {
+      "canonicalName": "operating_temperature_min",
+      "aliases": ["min temp", "minimum temperature", "low temp"]
+    },
+    {
+      "canonicalName": "operating_temperature_max",
+      "aliases": ["max temp", "maximum temperature", "high temp", "temperature limit"]
+    }
+  ]
+}

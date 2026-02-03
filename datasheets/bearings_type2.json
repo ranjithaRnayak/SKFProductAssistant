@@ -1,0 +1,79 @@
+{
+  "products": [
+    {
+      "designation": "6305-2RS",
+      "name": "Deep Groove Ball Bearing 6305-2RS",
+      "category": "deep_groove_ball_bearings",
+      "attributes": {
+        "bore_diameter": { "value": "25", "unit": "mm" },
+        "outer_diameter": { "value": "62", "unit": "mm" },
+        "width": { "value": "17", "unit": "mm" },
+        "dynamic_load_rating": { "value": "22500", "unit": "N" },
+        "static_load_rating": { "value": "11400", "unit": "N" },
+        "limiting_speed_grease": { "value": "8500", "unit": "rpm" },
+        "limiting_speed_oil": { "value": "10000", "unit": "rpm" },
+        "weight": { "value": "0.23", "unit": "kg" },
+        "seal_type": { "value": "2RS", "unit": null },
+        "cage_material": { "value": "Steel", "unit": null },
+        "operating_temperature_min": { "value": "-30", "unit": "°C" },
+        "operating_temperature_max": { "value": "110", "unit": "°C" }
+      }
+    },
+    {
+      "designation": "7205-BECBP",
+      "name": "Angular Contact Ball Bearing 7205-BECBP",
+      "category": "angular_contact_ball_bearings",
+      "attributes": {
+        "bore_diameter": { "value": "25", "unit": "mm" },
+        "outer_diameter": { "value": "52", "unit": "mm" },
+        "width": { "value": "15", "unit": "mm" },
+        "contact_angle": { "value": "40", "unit": "°" },
+        "dynamic_load_rating": { "value": "15900", "unit": "N" },
+        "static_load_rating": { "value": "9300", "unit": "N" },
+        "limiting_speed_grease": { "value": "15000", "unit": "rpm" },
+        "limiting_speed_oil": { "value": "20000", "unit": "rpm" },
+        "weight": { "value": "0.12", "unit": "kg" },
+        "cage_material": { "value": "Polyamide", "unit": null },
+        "operating_temperature_min": { "value": "-30", "unit": "°C" },
+        "operating_temperature_max": { "value": "120", "unit": "°C" }
+      }
+    },
+    {
+      "designation": "NU205-ECP",
+      "name": "Cylindrical Roller Bearing NU205-ECP",
+      "category": "cylindrical_roller_bearings",
+      "attributes": {
+        "bore_diameter": { "value": "25", "unit": "mm" },
+        "outer_diameter": { "value": "52", "unit": "mm" },
+        "width": { "value": "15", "unit": "mm" },
+        "dynamic_load_rating": { "value": "31500", "unit": "N" },
+        "static_load_rating": { "value": "28500", "unit": "N" },
+        "limiting_speed_grease": { "value": "11000", "unit": "rpm" },
+        "limiting_speed_oil": { "value": "14000", "unit": "rpm" },
+        "weight": { "value": "0.14", "unit": "kg" },
+        "cage_material": { "value": "Polyamide", "unit": null },
+        "operating_temperature_min": { "value": "-30", "unit": "°C" },
+        "operating_temperature_max": { "value": "120", "unit": "°C" }
+      }
+    },
+    {
+      "designation": "32205-J2/Q",
+      "name": "Tapered Roller Bearing 32205-J2/Q",
+      "category": "tapered_roller_bearings",
+      "attributes": {
+        "bore_diameter": { "value": "25", "unit": "mm" },
+        "outer_diameter": { "value": "52", "unit": "mm" },
+        "width": { "value": "18", "unit": "mm" },
+        "contact_angle": { "value": "17", "unit": "°" },
+        "dynamic_load_rating": { "value": "45000", "unit": "N" },
+        "static_load_rating": { "value": "45000", "unit": "N" },
+        "limiting_speed_grease": { "value": "7500", "unit": "rpm" },
+        "limiting_speed_oil": { "value": "10000", "unit": "rpm" },
+        "weight": { "value": "0.17", "unit": "kg" },
+        "cage_material": { "value": "Steel", "unit": null },
+        "operating_temperature_min": { "value": "-30", "unit": "°C" },
+        "operating_temperature_max": { "value": "150", "unit": "°C" }
+      }
+    }
+  ]
+}
