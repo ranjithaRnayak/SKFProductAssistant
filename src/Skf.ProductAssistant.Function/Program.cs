@@ -27,10 +27,6 @@ var host = new HostBuilder()
     {
         var configuration = context.Configuration;
 
-        // ============================================
-        // Configuration Options (IOptions<T> pattern)
-        // ============================================
-
         services.AddOptions<AzureOpenAIOptions>()
             .Bind(configuration.GetSection(AzureOpenAIOptions.SectionName))
             .ValidateDataAnnotations()
@@ -56,69 +52,43 @@ var host = new HostBuilder()
             .ValidateDataAnnotations()
             .ValidateOnStart();
 
-        // ============================================
-        // Infrastructure Services
-        // ============================================
-
-        // Attribute normalization lexicon
         services.AddSingleton<AttributeLexicon>();
 
-        // Conditional Redis registration based on feature flag
         var featureFlags = configuration.GetSection(FeatureFlags.SectionName).Get<FeatureFlags>();
 
         if (featureFlags?.UseRedis == true)
         {
-            // Redis connection
             services.AddSingleton<IConnectionMultiplexer>(sp =>
             {
                 var redisOptions = sp.GetRequiredService<IOptions<RedisOptions>>().Value;
                 return ConnectionMultiplexer.Connect(redisOptions.ConnectionString);
             });
 
-            // Redis-backed repositories
             services.AddSingleton<ICacheRepository, RedisCacheRepository>();
             services.AddSingleton<IFeedbackRepository, RedisFeedbackRepository>();
             services.AddSingleton<IConversationStateRepository, RedisConversationStateRepository>();
         }
         else
         {
-            // In-memory repositories (default)
             services.AddSingleton<ICacheRepository, InMemoryCacheRepository>();
             services.AddSingleton<IFeedbackRepository, InMemoryFeedbackRepository>();
             services.AddSingleton<IConversationStateRepository, InMemoryConversationStateRepository>();
         }
 
-        // Datasheet repository (always JSON-based)
         services.AddSingleton<IDatasheetRepository, JsonDatasheetRepository>();
-
-        // ============================================
-        // Application Plugins (for SK function calling)
-        // ============================================
 
         services.AddSingleton<DatasheetPlugin>();
         services.AddSingleton<CachePlugin>();
         services.AddSingleton<StatePlugin>();
         services.AddSingleton<FeedbackPlugin>();
 
-        // ============================================
-        // Application Services
-        // ============================================
-
         services.AddSingleton<IntentClassifierService>();
         services.AddSingleton<ProductNormalizationService>();
         services.AddSingleton<ConversationStateManager>();
         services.AddSingleton<HallucinationGuard>();
 
-        // ============================================
-        // Agents
-        // ============================================
-
         services.AddSingleton<QnaAgent>();
         services.AddSingleton<FeedbackAgent>();
-
-        // ============================================
-        // Orchestrator (main entry point)
-        // ============================================
 
         services.AddSingleton<OrchestratorService>();
     })

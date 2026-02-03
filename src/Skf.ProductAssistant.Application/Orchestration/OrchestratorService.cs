@@ -37,9 +37,6 @@ public sealed class OrchestratorService
         _logger = logger;
     }
 
-    /// <summary>
-    /// Processes a chat request and returns the response.
-    /// </summary>
     public async Task<ChatResponse> ProcessAsync(
         ChatRequest request,
         CancellationToken cancellationToken = default)
@@ -48,7 +45,6 @@ public sealed class OrchestratorService
 
         try
         {
-            // Step 1: Get or create conversation context
             var context = await _stateManager.GetOrCreateAsync(
                 request.ConversationId,
                 cancellationToken);
@@ -58,19 +54,16 @@ public sealed class OrchestratorService
                 context.ConversationId,
                 context.TurnCount + 1);
 
-            // Step 2: Classify intent
             var intent = await _intentClassifier.ClassifyAsync(
                 request.Message,
                 cancellationToken);
 
             _logger.LogDebug("Classified intent: {Intent}", intent);
 
-            // Step 3: Extract and normalize product designation if present
             var extractedProduct = _normalizationService.ExtractDesignationFromMessage(request.Message);
             var resolvedProduct = _stateManager.ResolveProduct(context, extractedProduct);
             var extractedAttribute = _normalizationService.ExtractAttributeFromMessage(request.Message);
 
-            // Step 4: Route to appropriate agent based on intent
             var response = intent switch
             {
                 IntentType.Question => await HandleQuestionAsync(
@@ -90,7 +83,6 @@ public sealed class OrchestratorService
                 _ => HandleUnknown(request.Message, context.ConversationId)
             };
 
-            // Step 5: Update conversation state
             await _stateManager.UpdateContextAsync(
                 context,
                 intent,
@@ -98,7 +90,6 @@ public sealed class OrchestratorService
                 extractedAttribute,
                 cancellationToken);
 
-            // Step 6: Add metadata
             stopwatch.Stop();
             return MergeResponseMetadata(
                 response,
