@@ -2,7 +2,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
-using Microsoft.SemanticKernel;
 using Skf.ProductAssistant.Application.Agents;
 using Skf.ProductAssistant.Application.Guards;
 using Skf.ProductAssistant.Application.Orchestration;
@@ -12,7 +11,6 @@ using Skf.ProductAssistant.Domain.Interfaces;
 using Skf.ProductAssistant.Infrastructure.Configuration;
 using Skf.ProductAssistant.Infrastructure.Normalization;
 using Skf.ProductAssistant.Infrastructure.Repositories;
-using Skf.ProductAssistant.Infrastructure.SemanticKernel;
 using StackExchange.Redis;
 
 var host = new HostBuilder()
@@ -92,33 +90,6 @@ var host = new HostBuilder()
 
         // Datasheet repository (always JSON-based)
         services.AddSingleton<IDatasheetRepository, JsonDatasheetRepository>();
-
-        // ============================================
-        // Semantic Kernel
-        // ============================================
-
-        services.AddSingleton<Kernel>(sp =>
-        {
-            var factory = new KernelFactory(
-                sp.GetRequiredService<IOptions<AzureOpenAIOptions>>(),
-                sp.GetRequiredService<IOptions<FeatureFlags>>(),
-                sp.GetRequiredService<ILoggerFactory>());
-
-            var kernel = factory.CreateKernel();
-
-            // Import plugins
-            var datasheetPlugin = sp.GetRequiredService<DatasheetPlugin>();
-            var cachePlugin = sp.GetRequiredService<CachePlugin>();
-            var statePlugin = sp.GetRequiredService<StatePlugin>();
-            var feedbackPlugin = sp.GetRequiredService<FeedbackPlugin>();
-
-            kernel.ImportPluginFromObject(datasheetPlugin, "Datasheet");
-            kernel.ImportPluginFromObject(cachePlugin, "Cache");
-            kernel.ImportPluginFromObject(statePlugin, "State");
-            kernel.ImportPluginFromObject(feedbackPlugin, "Feedback");
-
-            return kernel;
-        });
 
         // ============================================
         // Application Plugins (for SK function calling)
