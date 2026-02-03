@@ -21,6 +21,7 @@ public sealed class QnaAgent : IAgent
     private readonly FeatureFlags _featureFlags;
     private readonly HallucinationGuard _hallucinationGuard;
     private readonly ProductNormalizationService _normalization;
+    private readonly StatePlugin _statePlugin;
     private readonly ILogger<QnaAgent> _logger;
 
     public string Name => "QnaAgent";
@@ -41,6 +42,7 @@ public sealed class QnaAgent : IAgent
         _featureFlags = featureFlags.Value;
         _hallucinationGuard = hallucinationGuard;
         _normalization = normalization;
+        _statePlugin = statePlugin;
         _logger = logger;
 
         _kernel.ImportPluginFromObject(datasheetPlugin, "datasheet");
@@ -55,6 +57,8 @@ public sealed class QnaAgent : IAgent
     {
         var stopwatch = Stopwatch.StartNew();
         _logger.LogInformation("QnaAgent processing for conversation {ConversationId}", context.ConversationId);
+
+        _statePlugin.SetContext(context);
 
         var product = _normalization.ExtractDesignationFromMessage(request.Message) ?? context.CurrentProduct;
 

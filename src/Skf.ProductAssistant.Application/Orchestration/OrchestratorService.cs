@@ -3,7 +3,6 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Skf.ProductAssistant.Application.Agents;
 using Skf.ProductAssistant.Application.DTOs;
-using Skf.ProductAssistant.Application.Guards;
 using Skf.ProductAssistant.Application.Services;
 using Skf.ProductAssistant.Domain.Enums;
 using Skf.ProductAssistant.Infrastructure.Configuration;
@@ -17,8 +16,6 @@ public sealed class OrchestratorService
     private readonly ProductNormalizationService _normalizationService;
     private readonly QnaAgent _qnaAgent;
     private readonly FeedbackAgent _feedbackAgent;
-    private readonly HallucinationGuard _hallucinationGuard;
-    private readonly PromptOptions _prompts;
     private readonly FeatureFlags _featureFlags;
     private readonly ILogger<OrchestratorService> _logger;
 
@@ -28,8 +25,6 @@ public sealed class OrchestratorService
         ProductNormalizationService normalizationService,
         QnaAgent qnaAgent,
         FeedbackAgent feedbackAgent,
-        HallucinationGuard hallucinationGuard,
-        IOptions<PromptOptions> prompts,
         IOptions<FeatureFlags> featureFlags,
         ILogger<OrchestratorService> logger)
     {
@@ -38,15 +33,10 @@ public sealed class OrchestratorService
         _normalizationService = normalizationService;
         _qnaAgent = qnaAgent;
         _feedbackAgent = feedbackAgent;
-        _hallucinationGuard = hallucinationGuard;
-        _prompts = prompts.Value;
         _featureFlags = featureFlags.Value;
         _logger = logger;
     }
 
-    /// <summary>
-    /// Processes a chat request and returns the response.
-    /// </summary>
     public async Task<ChatResponse> ProcessAsync(
         ChatRequest request,
         CancellationToken cancellationToken = default)
@@ -55,7 +45,6 @@ public sealed class OrchestratorService
 
         try
         {
-            // Step 1: Get or create conversation context
             var context = await _stateManager.GetOrCreateAsync(
                 request.ConversationId,
                 cancellationToken);
@@ -65,31 +54,26 @@ public sealed class OrchestratorService
                 context.ConversationId,
                 context.TurnCount + 1);
 
-            // Step 2: Classify intent
             var intent = await _intentClassifier.ClassifyAsync(
                 request.Message,
-                context,
                 cancellationToken);
 
             _logger.LogDebug("Classified intent: {Intent}", intent);
 
-            // Step 3: Extract and normalize product designation if present
-            var extractedProduct = _normalizationService.ExtractProductDesignation(request.Message);
+            var extractedProduct = _normalizationService.ExtractDesignationFromMessage(request.Message);
             var resolvedProduct = _stateManager.ResolveProduct(context, extractedProduct);
+            var extractedAttribute = _normalizationService.ExtractAttributeFromMessage(request.Message);
 
-            // Step 4: Route to appropriate agent based on intent
             var response = intent switch
             {
                 IntentType.Question => await HandleQuestionAsync(
-                    request.Message,
+                    request,
                     context,
-                    resolvedProduct?.ToString(),
                     cancellationToken),
 
                 IntentType.Feedback => await HandleFeedbackAsync(
-                    request.Message,
+                    request,
                     context,
-                    resolvedProduct?.ToString(),
                     cancellationToken),
 
                 IntentType.Conversational => HandleConversational(request.Message, context.ConversationId),
@@ -99,26 +83,19 @@ public sealed class OrchestratorService
                 _ => HandleUnknown(request.Message, context.ConversationId)
             };
 
-            // Step 5: Update conversation state
             await _stateManager.UpdateContextAsync(
                 context,
                 intent,
                 resolvedProduct,
-                ExtractAttributeFromMessage(request.Message),
+                extractedAttribute,
                 cancellationToken);
 
-            // Step 6: Add metadata
             stopwatch.Stop();
-            return response with
-            {
-                Intent = intent,
-                Metadata = new ResponseMetadata
-                {
-                    ProcessingTimeMs = stopwatch.ElapsedMilliseconds,
-                    AgentUsed = GetAgentName(intent),
-                    TurnNumber = context.TurnCount
-                }
-            };
+            return MergeResponseMetadata(
+                response,
+                intent,
+                context.TurnCount,
+                stopwatch.ElapsedMilliseconds);
         }
         catch (Exception ex)
         {
@@ -140,57 +117,19 @@ public sealed class OrchestratorService
     }
 
     private async Task<ChatResponse> HandleQuestionAsync(
-        string message,
+        ChatRequest request,
         Domain.Entities.ConversationContext context,
-        string? productDesignation,
         CancellationToken cancellationToken)
     {
-        // Use QnA agent to answer
-        var agentResponse = await _qnaAgent.ProcessAsync(
-            message,
-            context,
-            productDesignation,
-            cancellationToken);
-
-        // Validate response for hallucination
-        if (_featureFlags.StrictHallucinationPrevention)
-        {
-            var validation = await _hallucinationGuard.ValidateResponseAsync(
-                agentResponse.Answer,
-                message,
-                productDesignation,
-                cancellationToken);
-
-            if (!validation.IsValid)
-            {
-                _logger.LogWarning(
-                    "Hallucination guard triggered: {Reason}",
-                    validation.Reason);
-
-                // Return abstention response instead
-                return ChatResponse.NotFound(
-                    _hallucinationGuard.GetAbstentionResponse(
-                        productDesignation ?? "unknown",
-                        ExtractAttributeFromMessage(message)),
-                    context.ConversationId,
-                    productDesignation);
-            }
-        }
-
-        return agentResponse;
+        return await _qnaAgent.ProcessAsync(request, context, cancellationToken);
     }
 
     private async Task<ChatResponse> HandleFeedbackAsync(
-        string message,
+        ChatRequest request,
         Domain.Entities.ConversationContext context,
-        string? productDesignation,
         CancellationToken cancellationToken)
     {
-        return await _feedbackAgent.ProcessAsync(
-            message,
-            context,
-            productDesignation,
-            cancellationToken);
+        return await _feedbackAgent.ProcessAsync(request, context, cancellationToken);
     }
 
     private ChatResponse HandleConversational(string message, string conversationId)
@@ -263,23 +202,50 @@ public sealed class OrchestratorService
         };
     }
 
-    private static string? ExtractAttributeFromMessage(string message)
-    {
-        // Simple extraction - in production, this would use NLP
-        var attributes = new[]
-        {
-            "bore diameter", "outer diameter", "width", "weight",
-            "dynamic load", "static load", "speed", "temperature"
-        };
-
-        var lower = message.ToLowerInvariant();
-        return attributes.FirstOrDefault(a => lower.Contains(a));
-    }
-
     private static string GetAgentName(IntentType intent) => intent switch
     {
         IntentType.Question => "QnaAgent",
         IntentType.Feedback => "FeedbackAgent",
         _ => "Orchestrator"
     };
+
+    private static ChatResponse MergeResponseMetadata(
+        ChatResponse response,
+        IntentType intent,
+        int turnNumber,
+        long processingTimeMs)
+    {
+        var mergedMetadata = response.Metadata is null
+            ? new ResponseMetadata
+            {
+                ProcessingTimeMs = processingTimeMs,
+                AgentUsed = GetAgentName(intent),
+                TurnNumber = turnNumber
+            }
+            : new ResponseMetadata
+            {
+                ProcessingTimeMs = response.Metadata.ProcessingTimeMs == 0
+                    ? processingTimeMs
+                    : response.Metadata.ProcessingTimeMs,
+                AgentUsed = string.IsNullOrWhiteSpace(response.Metadata.AgentUsed)
+                    ? GetAgentName(intent)
+                    : response.Metadata.AgentUsed,
+                FunctionCallCount = response.Metadata.FunctionCallCount,
+                FeedbackId = response.Metadata.FeedbackId,
+                TurnNumber = response.Metadata.TurnNumber == 0
+                    ? turnNumber
+                    : response.Metadata.TurnNumber
+            };
+
+        return new ChatResponse
+        {
+            Answer = response.Answer,
+            ConversationId = response.ConversationId,
+            Intent = intent,
+            ProductDesignation = response.ProductDesignation,
+            IsFromDatasheet = response.IsFromDatasheet,
+            Warning = response.Warning,
+            Metadata = mergedMetadata
+        };
+    }
 }
