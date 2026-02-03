@@ -14,25 +14,11 @@ using Skf.ProductAssistant.Infrastructure.SemanticKernel;
 
 namespace Skf.ProductAssistant.Application.Agents;
 
-/// <summary>
-/// Agent for handling product Q&A using Semantic Kernel with function calling.
-/// This agent ONLY answers from datasheet data - never hallucinates.
-/// </summary>
-/// <remarks>
-/// The QnA Agent:
-/// 1. Receives user questions about product specifications
-/// 2. Uses DatasheetPlugin to look up actual data
-/// 3. Uses HallucinationGuard to validate responses
-/// 4. Returns factual answers or explicitly abstains if data not found
-/// </remarks>
 public sealed class QnaAgent : IAgent
 {
     private readonly Kernel _kernel;
     private readonly PromptOptions _prompts;
     private readonly FeatureFlags _featureFlags;
-    private readonly DatasheetPlugin _datasheetPlugin;
-    private readonly StatePlugin _statePlugin;
-    private readonly CachePlugin _cachePlugin;
     private readonly HallucinationGuard _hallucinationGuard;
     private readonly ProductNormalizationService _normalization;
     private readonly ILogger<QnaAgent> _logger;
@@ -53,17 +39,13 @@ public sealed class QnaAgent : IAgent
         _kernel = kernelFactory.CreateKernel();
         _prompts = prompts.Value;
         _featureFlags = featureFlags.Value;
-        _datasheetPlugin = datasheetPlugin;
-        _statePlugin = statePlugin;
-        _cachePlugin = cachePlugin;
         _hallucinationGuard = hallucinationGuard;
         _normalization = normalization;
         _logger = logger;
 
-        // Register plugins with the kernel
-        _kernel.ImportPluginFromObject(_datasheetPlugin, "datasheet");
-        _kernel.ImportPluginFromObject(_statePlugin, "state");
-        _kernel.ImportPluginFromObject(_cachePlugin, "cache");
+        _kernel.ImportPluginFromObject(datasheetPlugin, "datasheet");
+        _kernel.ImportPluginFromObject(statePlugin, "state");
+        _kernel.ImportPluginFromObject(cachePlugin, "cache");
     }
 
     public async Task<ChatResponse> ProcessAsync(
@@ -72,32 +54,17 @@ public sealed class QnaAgent : IAgent
         CancellationToken cancellationToken = default)
     {
         var stopwatch = Stopwatch.StartNew();
+        _logger.LogInformation("QnaAgent processing for conversation {ConversationId}", context.ConversationId);
 
-        _logger.LogInformation(
-            "QnaAgent processing request for conversation {ConversationId}",
-            context.ConversationId);
-
-        // Set context for plugins
-        _statePlugin.SetContext(context);
-
-        // Extract product and attribute from message
-        var product = _normalization.ExtractDesignationFromMessage(request.Message)
-                      ?? context.CurrentProduct;
-        var attribute = _normalization.ExtractAttributeFromMessage(request.Message);
+        var product = _normalization.ExtractDesignationFromMessage(request.Message) ?? context.CurrentProduct;
 
         try
         {
             var chatService = _kernel.GetRequiredService<IChatCompletionService>();
-
-            // Build the chat history with system prompt and user message
             var history = new ChatHistory();
             history.AddSystemMessage(_prompts.QnaAgent.SystemPrompt);
+            history.AddUserMessage(BuildUserMessage(request.Message, context, product?.Original));
 
-            // Build context-aware user message
-            var userMessage = BuildUserMessage(request.Message, context, product?.Original);
-            history.AddUserMessage(userMessage);
-
-            // Execute with function calling enabled
             var settings = new PromptExecutionSettings
             {
                 ExtensionData = new Dictionary<string, object>
@@ -108,41 +75,23 @@ public sealed class QnaAgent : IAgent
                 FunctionChoiceBehavior = FunctionChoiceBehavior.Auto()
             };
 
-            var response = await chatService.GetChatMessageContentAsync(
-                history,
-                settings,
-                _kernel,
-                cancellationToken);
-
+            var response = await chatService.GetChatMessageContentAsync(history, settings, _kernel, cancellationToken);
             var answer = response.Content ?? string.Empty;
 
-            // Validate response doesn't contain hallucinations
             if (_featureFlags.StrictHallucinationPrevention)
             {
-                var validationResult = await _hallucinationGuard.ValidateResponseAsync(
-                    answer,
-                    request.Message,
-                    product?.Original,
-                    cancellationToken);
+                var validation = await _hallucinationGuard.ValidateResponseAsync(
+                    answer, request.Message, product?.Original, cancellationToken);
 
-                if (!validationResult.IsValid)
+                if (!validation.IsValid)
                 {
-                    _logger.LogWarning(
-                        "Response failed hallucination check: {Reason}",
-                        validationResult.Reason);
-
-                    return ChatResponse.NotFound(
-                        _prompts.QnaAgent.NotFoundResponse,
-                        context.ConversationId,
-                        product?.Original);
+                    _logger.LogWarning("Hallucination check failed: {Reason}", validation.Reason);
+                    return ChatResponse.NotFound(_prompts.QnaAgent.NotFoundResponse, context.ConversationId, product?.Original);
                 }
             }
 
             stopwatch.Stop();
-
-            var isFromDatasheet = !answer.Contains("NOT_FOUND") &&
-                                  !answer.Contains("don't have") &&
-                                  !answer.Contains("not available");
+            var isFromDatasheet = !answer.Contains("NOT_FOUND") && !answer.Contains("don't have");
 
             return new ChatResponse
             {
@@ -161,51 +110,32 @@ public sealed class QnaAgent : IAgent
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "QnaAgent failed to process request");
-
+            _logger.LogError(ex, "QnaAgent failed");
             return new ChatResponse
             {
-                Answer = "I apologize, but I encountered an error processing your request. Please try again.",
+                Answer = "I encountered an error processing your request. Please try again.",
                 ConversationId = context.ConversationId,
                 Intent = IntentType.Question,
                 IsFromDatasheet = false,
-                Warning = "An error occurred during processing."
+                Warning = "Processing error occurred."
             };
         }
     }
 
     private string BuildUserMessage(string message, ConversationContext context, string? product)
     {
-        var template = _prompts.QnaAgent.UserTemplate;
-
-        // Replace placeholders
-        var result = template
+        return _prompts.QnaAgent.UserTemplate
             .Replace("{question}", message)
             .Replace("{product}", product ?? "not specified")
             .Replace("{context}", BuildContextString(context));
-
-        return result;
     }
 
     private static string BuildContextString(ConversationContext context)
     {
         var parts = new List<string>();
-
-        if (context.CurrentProduct is not null)
-        {
-            parts.Add($"Current product: {context.CurrentProduct}");
-        }
-
-        if (!string.IsNullOrEmpty(context.LastAttribute))
-        {
-            parts.Add($"Last attribute discussed: {context.LastAttribute}");
-        }
-
-        if (context.TurnCount > 0)
-        {
-            parts.Add($"Conversation turn: {context.TurnCount + 1}");
-        }
-
+        if (context.CurrentProduct is not null) parts.Add($"Current product: {context.CurrentProduct}");
+        if (!string.IsNullOrEmpty(context.LastAttribute)) parts.Add($"Last attribute: {context.LastAttribute}");
+        if (context.TurnCount > 0) parts.Add($"Turn: {context.TurnCount + 1}");
         return parts.Count > 0 ? string.Join("; ", parts) : "New conversation";
     }
 }

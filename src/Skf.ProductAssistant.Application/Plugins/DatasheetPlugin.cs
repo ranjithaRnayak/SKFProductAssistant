@@ -3,18 +3,9 @@ using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
 using Skf.ProductAssistant.Application.Services;
 using Skf.ProductAssistant.Domain.Interfaces;
-using Skf.ProductAssistant.Domain.ValueObjects;
 
 namespace Skf.ProductAssistant.Application.Plugins;
 
-/// <summary>
-/// Semantic Kernel plugin for accessing product datasheet information.
-/// This is the ONLY way the agent can get product data - ensuring no hallucination.
-/// </summary>
-/// <remarks>
-/// All methods return "NOT_FOUND" when data is missing, which the agent
-/// must interpret as "I don't have that information" rather than guessing.
-/// </remarks>
 public sealed class DatasheetPlugin
 {
     private readonly IDatasheetRepository _repository;
@@ -34,154 +25,87 @@ public sealed class DatasheetPlugin
         _logger = logger;
     }
 
-    /// <summary>
-    /// Gets a specific attribute value for a product.
-    /// </summary>
-    /// <param name="designation">The product designation (e.g., "6205-2RS").</param>
-    /// <param name="attribute">The attribute name (e.g., "bore_diameter", "weight").</param>
-    /// <returns>The attribute value with unit, or "NOT_FOUND" if not available.</returns>
     [KernelFunction("get_product_attribute")]
-    [Description("Gets a specific attribute value for a product bearing. Returns the value with unit, or 'NOT_FOUND' if the product or attribute doesn't exist.")]
+    [Description("Gets a specific attribute for a product. Returns value with unit, or 'NOT_FOUND'.")]
     public async Task<string> GetProductAttributeAsync(
-        [Description("The product designation, e.g., '6205-2RS', '22220E'")] string designation,
-        [Description("The attribute name, e.g., 'bore_diameter', 'outer_diameter', 'weight', 'dynamic_load_rating'")] string attribute)
+        [Description("Product designation (e.g., '6205-2RS')")] string designation,
+        [Description("Attribute name (e.g., 'width', 'bore_diameter')")] string attribute)
     {
-        _logger.LogDebug(
-            "GetProductAttribute called: designation={Designation}, attribute={Attribute}",
-            designation,
-            attribute);
+        _logger.LogDebug("GetProductAttribute: {Designation}, {Attribute}", designation, attribute);
 
         var productDesignation = _normalization.NormalizeDesignation(designation);
-        if (productDesignation is null)
-        {
-            _logger.LogDebug("Invalid designation: {Designation}", designation);
-            return InvalidDesignationResponse;
-        }
+        if (productDesignation is null) return InvalidDesignationResponse;
 
         var normalizedAttribute = _normalization.NormalizeAttribute(attribute);
-
         var productAttribute = await _repository.GetAttributeAsync(productDesignation, normalizedAttribute);
 
         if (productAttribute is null)
         {
-            _logger.LogDebug(
-                "Attribute not found: {Designation}.{Attribute}",
-                productDesignation,
-                normalizedAttribute);
+            _logger.LogDebug("Attribute not found: {Designation}.{Attribute}", productDesignation, normalizedAttribute);
             return NotFoundResponse;
         }
 
         return productAttribute.ToDisplayString();
     }
 
-    /// <summary>
-    /// Gets all available attributes for a product.
-    /// </summary>
     [KernelFunction("get_product_info")]
-    [Description("Gets all available information about a product bearing, including all its attributes. Returns 'NOT_FOUND' if the product doesn't exist.")]
+    [Description("Gets all information about a product. Returns 'NOT_FOUND' if product doesn't exist.")]
     public async Task<string> GetProductInfoAsync(
-        [Description("The product designation, e.g., '6205-2RS', '22220E'")] string designation)
+        [Description("Product designation (e.g., '6205-2RS')")] string designation)
     {
-        _logger.LogDebug("GetProductInfo called: designation={Designation}", designation);
-
         var productDesignation = _normalization.NormalizeDesignation(designation);
-        if (productDesignation is null)
-        {
-            return InvalidDesignationResponse;
-        }
+        if (productDesignation is null) return InvalidDesignationResponse;
 
         var product = await _repository.GetByDesignationAsync(productDesignation);
+        if (product is null) return NotFoundResponse;
 
-        if (product is null)
-        {
-            _logger.LogDebug("Product not found: {Designation}", productDesignation);
-            return NotFoundResponse;
-        }
-
-        // Format product info for the agent
         var lines = new List<string>
         {
             $"Product: {product.Designation}",
-            $"Name: {product.Name}"
+            $"Name: {product.Name}",
+            $"Category: {product.Category}",
+            "Attributes:"
         };
-
-        if (!string.IsNullOrEmpty(product.Category))
-        {
-            lines.Add($"Category: {product.Category}");
-        }
-
-        lines.Add("Attributes:");
-        foreach (var attr in product.Attributes)
-        {
-            lines.Add($"  - {attr.Name}: {attr.ToDisplayString()}");
-        }
+        lines.AddRange(product.Attributes.Select(attr => $"  - {attr.Name}: {attr.ToDisplayString()}"));
 
         return string.Join("\n", lines);
     }
 
-    /// <summary>
-    /// Checks if a product exists in the database.
-    /// </summary>
     [KernelFunction("check_product_exists")]
-    [Description("Checks if a product bearing exists in the database. Returns 'true' or 'false'.")]
+    [Description("Checks if a product exists. Returns 'true' or 'false'.")]
     public async Task<string> CheckProductExistsAsync(
-        [Description("The product designation to check")] string designation)
+        [Description("Product designation to check")] string designation)
     {
         var productDesignation = _normalization.NormalizeDesignation(designation);
-        if (productDesignation is null)
-        {
-            return "false";
-        }
+        if (productDesignation is null) return "false";
 
         var exists = await _repository.ExistsAsync(productDesignation);
         return exists ? "true" : "false";
     }
 
-    /// <summary>
-    /// Searches for products matching a query.
-    /// </summary>
     [KernelFunction("search_products")]
-    [Description("Searches for products matching a query. Returns a list of matching product designations, or 'NO_RESULTS' if none found.")]
+    [Description("Searches for products. Returns matching designations or 'NO_RESULTS'.")]
     public async Task<string> SearchProductsAsync(
-        [Description("The search query (designation, name, or category)")] string query,
-        [Description("Maximum number of results to return (default 5)")] int maxResults = 5)
+        [Description("Search query")] string query,
+        [Description("Max results (default 5)")] int maxResults = 5)
     {
-        _logger.LogDebug("SearchProducts called: query={Query}", query);
-
         var results = await _repository.SearchAsync(query, maxResults);
+        if (results.Count == 0) return "NO_RESULTS";
 
-        if (results.Count == 0)
-        {
-            return "NO_RESULTS";
-        }
-
-        var lines = results.Select(p => $"- {p.Designation}: {p.Name}");
-        return string.Join("\n", lines);
+        return string.Join("\n", results.Select(p => $"- {p.Designation}: {p.Name}"));
     }
 
-    /// <summary>
-    /// Lists available attributes for a product.
-    /// Useful when user asks "what information is available?"
-    /// </summary>
     [KernelFunction("list_product_attributes")]
-    [Description("Lists all available attributes for a product. Returns attribute names or 'NOT_FOUND' if product doesn't exist.")]
+    [Description("Lists available attributes for a product. Returns 'NOT_FOUND' if product doesn't exist.")]
     public async Task<string> ListProductAttributesAsync(
-        [Description("The product designation")] string designation)
+        [Description("Product designation")] string designation)
     {
         var productDesignation = _normalization.NormalizeDesignation(designation);
-        if (productDesignation is null)
-        {
-            return InvalidDesignationResponse;
-        }
+        if (productDesignation is null) return InvalidDesignationResponse;
 
         var product = await _repository.GetByDesignationAsync(productDesignation);
+        if (product is null) return NotFoundResponse;
 
-        if (product is null)
-        {
-            return NotFoundResponse;
-        }
-
-        var attributes = product.Attributes.Select(a => a.Name);
-        return string.Join(", ", attributes);
+        return string.Join(", ", product.Attributes.Select(a => a.Name));
     }
 }

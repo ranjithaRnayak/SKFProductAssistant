@@ -10,19 +10,6 @@ using Skf.ProductAssistant.Infrastructure.Configuration;
 
 namespace Skf.ProductAssistant.Application.Orchestration;
 
-/// <summary>
-/// Central orchestrator that routes requests to appropriate agents based on intent.
-/// Single entry point for all chat processing.
-/// </summary>
-/// <remarks>
-/// Orchestration flow:
-/// 1. Get or create conversation context
-/// 2. Classify user intent (Question, Feedback, Conversational, Help)
-/// 3. Route to appropriate agent (QnA, Feedback)
-/// 4. Validate response with HallucinationGuard
-/// 5. Update conversation state
-/// 6. Return response with metadata
-/// </remarks>
 public sealed class OrchestratorService
 {
     private readonly IntentClassifierService _intentClassifier;

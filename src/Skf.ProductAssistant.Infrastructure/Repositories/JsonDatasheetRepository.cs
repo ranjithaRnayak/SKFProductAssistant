@@ -9,15 +9,6 @@ using Skf.ProductAssistant.Infrastructure.Configuration;
 
 namespace Skf.ProductAssistant.Infrastructure.Repositories;
 
-/// <summary>
-/// Repository implementation that reads product data from JSON files.
-/// Implements lazy loading with optional file watching for development.
-/// </summary>
-/// <remarks>
-/// JSON files are loaded once at startup (or on first access) and cached in memory.
-/// This is the single source of truth for product data - no hallucination possible
-/// because we only return what exists in these files.
-/// </remarks>
 public sealed class JsonDatasheetRepository : IDatasheetRepository, IDisposable
 {
     private readonly DatasheetOptions _options;
@@ -34,18 +25,12 @@ public sealed class JsonDatasheetRepository : IDatasheetRepository, IDisposable
         AllowTrailingCommas = true
     };
 
-    public JsonDatasheetRepository(
-        IOptions<DatasheetOptions> options,
-        ILogger<JsonDatasheetRepository> logger)
+    public JsonDatasheetRepository(IOptions<DatasheetOptions> options, ILogger<JsonDatasheetRepository> logger)
     {
         _options = options.Value;
         _logger = logger;
     }
 
-    /// <summary>
-    /// Ensures datasheets are loaded before any operation.
-    /// Thread-safe lazy initialization.
-    /// </summary>
     private async Task EnsureLoadedAsync(CancellationToken cancellationToken)
     {
         if (_isLoaded) return;
