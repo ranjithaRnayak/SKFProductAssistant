@@ -78,18 +78,6 @@ public sealed class ProductAssistantFunction
         }
     }
 
-    /// <summary>
-    /// Health check endpoint.
-    /// </summary>
-    [Function("health")]
-    public HttpResponseData HealthCheck(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "health")] HttpRequestData req)
-    {
-        var response = req.CreateResponse(HttpStatusCode.OK);
-        response.WriteString("Healthy");
-        return response;
-    }
-
     private static async Task<HttpResponseData> CreateErrorResponseAsync(
         HttpRequestData req,
         HttpStatusCode statusCode,
