@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <RootNamespace>Skf.ProductAssistant.Domain</RootNamespace>
+    <AssemblyName>Skf.ProductAssistant.Domain</AssemblyName>
+  </PropertyGroup>
+
+  <!--
+    Domain layer is PURE - NO external dependencies.
+    This project contains only:
+    - Entities (business objects)
+    - Value Objects (immutable domain primitives)
+    - Enums (domain enumerations)
+    - Interfaces (repository contracts)
+
+    No Semantic Kernel, No Azure SDK, No infrastructure concerns.
+  -->
+
+</Project>
