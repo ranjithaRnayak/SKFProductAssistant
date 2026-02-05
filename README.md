@@ -57,7 +57,7 @@ cd SKFProductAssistant
 
 **2. Configure Environment Variables**
 
-Create a `local.settings.json` file in `src/Skf.ProductAssistant.Function/`:
+Edit the `local.settings.json` file in `src/Skf.ProductAssistant.Function/` with your Azure OpenAI credentials:
 ```json
 {
   "IsEncrypted": false,
